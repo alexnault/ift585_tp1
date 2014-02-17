@@ -15,18 +15,19 @@ namespace ift585_tp1
 
             /////PROGRAM PARAMS////
             // La taille	du tampon utilisé de chaque	côté du	thread simulant le réseau (tampon d'envoi).
-            int bufferLength = 1;
+            int bufferLength = 3;
             // Le délai de temporisation	(time-out) de l'émetteur.
 		    int timeout = 1000;
             // Le fichier à copier
-            string file = "./in/input.txt";
+            string file = "./input.txt";
             // L'emplacement de destination	pour la	copie du fichier.
             string savePath = "./blabla/out/chat.txt";
             ///////////////////////
 
             Network network = new Network();
-            EndDevice receiver = new EndDevice(network, bufferLength, file, null, timeout);
-            EndDevice emitter = new EndDevice(network, bufferLength, null, savePath, timeout);
+            EndDevice receiver = new EndDevice(network, bufferLength, null, savePath, timeout);
+            EndDevice emitter = new EndDevice(network, bufferLength, file, null, timeout);
+            
 
             Thread networkThread = new Thread(new ThreadStart(network.Start));
             Thread receiverThread = new Thread(new ThreadStart(receiver.Start));

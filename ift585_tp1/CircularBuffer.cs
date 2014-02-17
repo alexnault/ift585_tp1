@@ -6,31 +6,52 @@ using System.Threading.Tasks;
 
 namespace ift585_tp1
 {
-    // TODO (Cisco) : Currently, the circular buffer overwrites previous values when full; is it the desired behavior? 
-
     class CircularBuffer<T>
     {
         protected int length;
         protected T[] buffer;
-        protected int index;
+        protected int head;
+        protected int tail;
+        protected int count;
 
         public CircularBuffer(int length)
         {
-            index = -1;
+            head = 0;
+            tail = 0;
             this.length = length;
             buffer = new T[this.length];
         }
 
-        public void Push(T value)
+        public virtual void Push(T value)
         {
-            index = (index + 1) % length;
-            buffer[index] = value;
+            if (IsFull())
+                throw new Exception("Circular buffer is full");
+
+            buffer[head] = value;
+            head = (head + 1) % length;
+            count++;
         }
 
-        public T Pop()
+        public virtual T Pop()
         {
-            index = (index - 1) % length;
-            return buffer[index];
+            if (IsEmpty())
+                throw new Exception("Circular buffer is empty");
+
+            T value = buffer[tail];
+            buffer[tail] = default(T);
+            tail = (tail + 1) % length;
+            count--;
+            return value;
+        }
+
+        public bool IsFull()
+        {
+            return count >= length;
+        }
+
+        public bool IsEmpty()
+        {
+            return count <= 0;
         }
 
         public override string ToString()
@@ -39,8 +60,10 @@ namespace ift585_tp1
             for (int i = 0; i < length; i++)
             {
                 s += buffer[i];
-                if (index == i)
-                    s += " <-- " + index;
+                if (head == i)
+                    s += " <-- H (" + head + ")";
+                if (tail == i)
+                    s += " <-- T (" + tail + ")";
                 s += "\n";
             }
             s += "#########\n";
