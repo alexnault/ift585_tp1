@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 using System.IO;
+using System.Timers;
+using System.Diagnostics;
 
 namespace ift585_tp1
 {
@@ -35,11 +37,15 @@ namespace ift585_tp1
                 fs = File.OpenRead(inputPath);
 
             this.outputPath = outputPath;
+
+            //Timer section
             this.timeout = timeout;
+
 
             inBuffer = new FrameBuffer(bufferLength * Frame.NB_BYTES);
             outBuffer = new FrameBuffer(bufferLength * Frame.NB_BYTES);
         }
+
 
         public void Start()
         {
@@ -66,11 +72,17 @@ namespace ift585_tp1
                     if (!outBuffer.IsEmpty())
                     {
                         //Console.WriteLine("try send");
-                        if (network.rdyToSend)
+                        if (network.rdyToSend )
                         {
-                            Frame frame = outBuffer.Pop(); 
+                            Frame frame = outBuffer.FrameToSend(); 
                             Console.WriteLine("Sending " + frame.ToString());
-                            network.Send(frame.toBytes()); // TODO must not actually POP the value (because of ACK). need more FrameBuffer logic
+                            network.Send(frame.toBytes());
+                            
+                        }
+                        if (network.rdyToReceiveACK)
+                        {
+                            Frame frameACKReceive = new Frame(network.ReceiveACK());
+                            Console.WriteLine("Receiving ACK" + outBuffer.Pop());
                         }
                     }
                 }
@@ -82,6 +94,11 @@ namespace ift585_tp1
                     {
                         Frame frame = new Frame(network.Receive());
                         Console.WriteLine("Receiving " + frame.ToString());
+                       
+                        //if no error { Create ACK to send
+                        Frame frameACKSend = new Frame(null,2);
+                        Console.WriteLine("Sending ACK" + frame.ToString());
+                        network.SendACK(frameACKSend.toBytes());
                     }
                     
                     /*if (!inBuffer.IsEmpty())

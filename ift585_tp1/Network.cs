@@ -15,6 +15,12 @@ namespace ift585_tp1
         public bool rdyToSend = true;
         public bool rdyToReceive = false;
 
+        protected byte[] sourceACK = new byte[Frame.NB_BYTES];
+        protected byte[] destinationACK = new byte[Frame.NB_BYTES];
+
+        public bool rdyToSendACK = true;
+        public bool rdyToReceiveACK = false;
+
         // TODO ACK & NAK logic (duplicate properties)
 
         public void Start()
@@ -34,8 +40,14 @@ namespace ift585_tp1
                     rdyToSend = true;
                 }
 
-                //TODO (Cisco)
                 // Receiver --> Emitter (ACK & NAK)*/
+                if (!rdyToSendACK && !rdyToReceiveACK)
+                {
+                    Array.Copy(sourceACK, destinationACK, sourceACK.Length);
+                    rdyToReceiveACK = true;
+                    rdyToSendACK = true;
+                }
+
             }
         }
 
@@ -49,6 +61,21 @@ namespace ift585_tp1
         {
             rdyToReceive = false;
             return destination;
+        }
+
+        public void SendACK(byte[] data)
+        {
+            rdyToSendACK = false;
+            if (data != null)
+            {
+                sourceACK = data;
+            }
+        }
+
+        public byte[] ReceiveACK()
+        {
+            rdyToReceiveACK = false;
+            return destinationACK;
         }
     }
 }

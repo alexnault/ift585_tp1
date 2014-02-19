@@ -13,6 +13,7 @@ namespace ift585_tp1
         int ttl;
         int length;
         int checksum;
+        int type; //1 = normal, 2 = ack, 3 = nack
         // source
         // destination
         
@@ -20,11 +21,11 @@ namespace ift585_tp1
 
         public byte[] data;
 
-        public Frame(byte[] data)
+        public Frame(byte[] data, int type = 1)
         {
             // TODO (build frame from byte array)
-            
             this.data = data;
+            this.type = type;
         }
 
         public byte[] toBytes()
@@ -42,5 +43,6 @@ namespace ift585_tp1
             }
             return s;
         }
+
     }
 }

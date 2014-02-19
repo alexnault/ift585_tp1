@@ -30,6 +30,11 @@ namespace ift585_tp1
             return frame;
         }
 
+        public Frame FrameToSend()
+        {
+            return buffer[tail];
+        }
+
         // TODO Logic for getting data without popping it.
     }
 }
