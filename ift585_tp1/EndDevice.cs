@@ -8,10 +8,10 @@ using System.IO;
 
 namespace ift585_tp1
 {
-    class EndDevice 
+    class EndDevice
     {
         //protected Network network;
-        
+
         protected string inputPath;
         protected FileStream fs;
 
@@ -19,7 +19,6 @@ namespace ift585_tp1
 
         protected int timeout;
 
-        public FrameBuffer inBuffer;
         public FrameBuffer outBuffer;
 
         //public readonly AutoResetEvent send = new AutoResetEvent(false);
@@ -35,11 +34,12 @@ namespace ift585_tp1
                 fs = File.OpenRead(inputPath);
 
             this.outputPath = outputPath;
+
             this.timeout = timeout;
 
-            inBuffer = new FrameBuffer(bufferLength * Frame.NB_BYTES);
             outBuffer = new FrameBuffer(bufferLength * Frame.NB_BYTES);
         }
+
 
         public void Start()
         {
@@ -61,16 +61,38 @@ namespace ift585_tp1
                         if (frame != null)
                             outBuffer.Push(frame);
                     }
-                        
+
                     // Try sending
                     if (!outBuffer.IsEmpty())
                     {
-                        //Console.WriteLine("try send");
-                        if (network.rdyToSend)
+
+                        Frame frameToSend = null;
+
+                        frameToSend = outBuffer.GetTimeoutFrame();
+                        if (frameToSend == null)
                         {
-                            Frame frame = outBuffer.Pop(); 
-                            Console.WriteLine("Sending " + frame.ToString());
-                            network.Send(frame.toBytes()); // TODO must not actually POP the value (because of ACK). need more FrameBuffer logic
+                            frameToSend = outBuffer.FrameToSend();
+                        }
+                        if (frameToSend != null)
+                        {
+                            while (!network.rdyToSend)
+                            { }
+
+                            Console.WriteLine("Sending " + frameToSend.ToString());
+                            network.Send(frameToSend.toBytes());
+                            outBuffer.StartTimer(frameToSend.Id, timeout);
+                        }
+
+
+                        if (network.rdyToReceiveACK)
+                        {
+                            Frame frameACKReceive = new Frame(network.ReceiveACK());
+                            int idFrame = BitConverter.ToInt32(frameACKReceive.data, 0);
+                            Console.WriteLine("Receiving ACK" + idFrame);
+                            outBuffer.RemoveFromId(idFrame);
+
+                            //enlever le frametimer de la liste selon le id de la frame
+                            outBuffer.RemoveFrameTimer(idFrame);
                         }
                     }
                 }
@@ -82,8 +104,17 @@ namespace ift585_tp1
                     {
                         Frame frame = new Frame(network.Receive());
                         Console.WriteLine("Receiving " + frame.ToString());
+
+                        if (network.rdyToSendACK)
+                        {
+                            Frame frameACKSend = new Frame(BitConverter.GetBytes(frame.Id), 2);
+                            Console.WriteLine("Sending ACK" + frame.ToString());
+                            network.SendACK(frameACKSend.toBytes());
+                        }
                     }
-                    
+
+
+
                     /*if (!inBuffer.IsEmpty())
                     {
                         Console.WriteLine("receiver received");

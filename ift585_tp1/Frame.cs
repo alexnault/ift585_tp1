@@ -10,9 +10,12 @@ namespace ift585_tp1
     {
         // TODO ()
         int id;
-        int ttl;
         int length;
         int checksum;
+        int type; //1 = normal, 2 = ack, 3 = nack
+        bool timeout;
+
+        
         // source
         // destination
         
@@ -20,11 +23,23 @@ namespace ift585_tp1
 
         public byte[] data;
 
-        public Frame(byte[] data)
+        public int Id
+        {
+            get { return id; }
+            set { id = value; }
+        }
+
+        public bool Timeout
+        {
+            get { return timeout; }
+            set { timeout = value; }
+        }
+
+        public Frame(byte[] data, int type = 1)
         {
             // TODO (build frame from byte array)
-            
             this.data = data;
+            this.type = type;
         }
 
         public byte[] toBytes()
@@ -42,5 +57,6 @@ namespace ift585_tp1
             }
             return s;
         }
+
     }
 }
