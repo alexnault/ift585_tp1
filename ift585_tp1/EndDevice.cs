@@ -92,7 +92,7 @@ namespace ift585_tp1
 
                     if (network.rdyToReceive)
                     {
-                        Frame frame = new Frame(network.Receive());
+                        Frame frame = new Frame(14, 0, network.Receive());
                         Console.WriteLine("Receiving " + frame.ToString());
                        
                         //if no error { Create ACK to send
@@ -121,7 +121,7 @@ namespace ift585_tp1
             byte[] bytes = new byte[Frame.NB_BYTES]; // TODO read according to data size in frame format
             fs.Read(bytes, 0, Frame.NB_BYTES);
 
-            return new Frame(bytes);
+            return new Frame(40, 0, bytes);
         }
     }
 }
