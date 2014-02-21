@@ -4,19 +4,20 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using HammingCode;
 
 namespace ift585_tp1
 {
     class Network
     {
-        protected byte[] source = new byte[Frame.NB_BYTES];
-        protected byte[] destination = new byte[Frame.NB_BYTES];
+        protected Binary source;
+        protected Binary destination;
 
         public bool rdyToSend = true;
         public bool rdyToReceive = false;
 
-        protected byte[] sourceACK = new byte[Frame.NB_BYTES];
-        protected byte[] destinationACK = new byte[Frame.NB_BYTES];
+        protected Binary sourceACK;
+        protected Binary destinationACK;
 
         public bool rdyToSendACK = true;
         public bool rdyToReceiveACK = false;
@@ -35,7 +36,7 @@ namespace ift585_tp1
                 // Emitter --> Receiver
                 if (!rdyToSend && !rdyToReceive)
                 {
-                    Array.Copy(source, destination, source.Length); // might need to make copy instead
+                    destination = source; // might need to make copy instead
                     rdyToReceive = true;
                     rdyToSend = true;
                 }
@@ -43,7 +44,7 @@ namespace ift585_tp1
                 // Receiver --> Emitter (ACK & NAK)*/
                 if (!rdyToSendACK && !rdyToReceiveACK)
                 {
-                    Array.Copy(sourceACK, destinationACK, sourceACK.Length);
+                    destinationACK = sourceACK;
                     rdyToReceiveACK = true;
                     rdyToSendACK = true;
                 }
@@ -51,19 +52,19 @@ namespace ift585_tp1
             }
         }
 
-        public void Send(byte[] data)
+        public void Send(Binary data)
         {
             rdyToSend = false;
             source = data;
         }
 
-        public byte[] Receive()
+        public Binary Receive()
         {
             rdyToReceive = false;
             return destination;
         }
 
-        public void SendACK(byte[] data)
+        public void SendACK(Binary data)
         {
             rdyToSendACK = false;
             if (data != null)
@@ -72,7 +73,7 @@ namespace ift585_tp1
             }
         }
 
-        public byte[] ReceiveACK()
+        public Binary ReceiveACK()
         {
             rdyToReceiveACK = false;
             return destinationACK;

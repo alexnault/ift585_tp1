@@ -13,11 +13,13 @@ namespace ift585_tp1
         protected int head;
         protected int tail;
         protected int count;
+        protected int current;
 
         public CircularBuffer(int length)
         {
             head = 0;
             tail = 0;
+            current = tail;
             this.length = length;
             buffer = new T[this.length];
         }
@@ -44,31 +46,6 @@ namespace ift585_tp1
             return value;
         }
 
-
-        public void RemoveAt(int index)
-        {
-            // validate the index
-            if (index < 0 || index >= count)
-                throw new IndexOutOfRangeException();
-            // move all items above the specified position one step
-            // closer to zeri
-            for (int i = index; i < count - 1; i++)
-            {
-                // get the next relative target position of the item
-                int to = (head - count + i) % length;
-                // get the next relative source position of the item
-                int from = (head - count + i + 1) % length;
-                // move the item
-                buffer[to] = buffer[from];
-            }
-            // get the relative position of the last item, which becomes empty
-            // after deletion and set the item as empty
-            int last = (head - 1) % length;
-            buffer[last] = default(T);
-            // adjust storage information
-            head--;
-            count--;
-        }
 
         public bool IsFull()
         {

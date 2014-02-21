@@ -11,7 +11,7 @@ namespace ift585_tp1
     {
         List<FrameTimer> frameTimerList = new List<FrameTimer>();
         private readonly object _mutex = new object();
-        
+
         public FrameBuffer(int length) : base(length) { }
 
         public override void Push(Frame frame)
@@ -34,19 +34,21 @@ namespace ift585_tp1
 
         public Frame FrameToSend()
         {
-            return buffer[tail];
+            if(current < head)
+                return buffer[current++];
+            return null;
         }
 
         public Frame GetFrameFromId(int id)
         {
-            return buffer.FirstOrDefault(x => x.Id == id);        
+            return buffer.FirstOrDefault(x => x!=null && x.id == id);
         }
 
         public void RemoveFromId(int id)
         {
             for (int i = 0; i < count; i++)
             {
-                if (buffer[i].Id == id)
+                if (buffer[i].id == id)
                 {
                     this.RemoveAt(i);
                     break;
@@ -54,7 +56,32 @@ namespace ift585_tp1
             }
         }
 
-        
+        public void RemoveAt(int index)
+        {
+            // validate the index
+            if (index < 0 || index >= count)
+                throw new IndexOutOfRangeException();
+            // move all items above the specified position one step
+            // closer to zeri
+            for (int i = index; i < count - 1; i++)
+            {
+                // get the next relative target position of the item
+                int to = (head - count + i) % length;
+                // get the next relative source position of the item
+                int from = (head - count + i + 1) % length;
+                // move the item
+                buffer[to] = buffer[from];
+            }
+            // get the relative position of the last item, which becomes empty
+            // after deletion and set the item as empty
+            int last = (head - 1) % length;
+            buffer[last] = default(Frame);
+            // adjust storage information
+            head--;
+            count--;
+        }
+
+
 
         // TODO Logic for getting data without popping it.
 
@@ -65,7 +92,7 @@ namespace ift585_tp1
         /// <param name="timeout"></param>
         public void StartTimer(int id, int timeout)
         {
-            Timer timer = new Timer( Callback, id, timeout, Timeout.Infinite );
+            Timer timer = new Timer(Callback, id, timeout, Timeout.Infinite);
             FrameTimer frameTimer = new FrameTimer(id, timer);
             frameTimerList.Add(frameTimer);
         }
@@ -80,7 +107,7 @@ namespace ift585_tp1
             timerFrame.Timer.Dispose();
             frameTimerList.Remove(timerFrame);
         }
-        
+
         /// <summary>
         /// Lorsque l'intervalle est arrivé on devra réenvoyé la trame
         /// </summary>
@@ -89,16 +116,18 @@ namespace ift585_tp1
         {
             Console.WriteLine("Timeout");
             //on va chercher le frame dans le buffer selon le id
-            GetFrameFromId((int)id).Timeout = true;
+            Frame frame = GetFrameFromId((int)id);
+            if(frame!=null)
+             frame.mustResend = 1;
         }
 
-        public Frame GetTimeoutFrame()
+        public Frame GetMusTResendFrame()
         {
-            for(int i=0;i<count;i++)
+            for (int i = 0; i < count; i++)
             {
-                if (buffer[i].Timeout)
+                if (buffer[i].mustResend == 1)
                 {
-                    buffer[i].Timeout = false;
+                    buffer[i].mustResend = 0;
                     return buffer[i];
                 }
             }

@@ -45,6 +45,9 @@
     <Compile Include="EndDevice.cs" />
     <Compile Include="Frame.cs" />
     <Compile Include="FrameBuffer.cs" />
+    <Compile Include="Hamming\Binary.cs" />
+    <Compile Include="Hamming\BinaryMatrix.cs" />
+    <Compile Include="Hamming\Hamming.cs" />
     <Compile Include="FrameTimer.cs" />
     <Compile Include="Network.cs" />
     <Compile Include="Program.cs" />

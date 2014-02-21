@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 using System.IO;
+using System.Timers;
+using System.Diagnostics;
 
 namespace ift585_tp1
 {
@@ -20,6 +22,8 @@ namespace ift585_tp1
         protected int timeout;
 
         public FrameBuffer outBuffer;
+
+        protected int frameId;
 
         //public readonly AutoResetEvent send = new AutoResetEvent(false);
         //public readonly AutoResetEvent receive = new AutoResetEvent(false);
@@ -68,27 +72,27 @@ namespace ift585_tp1
 
                         Frame frameToSend = null;
 
-                        frameToSend = outBuffer.GetTimeoutFrame();
+                        frameToSend = outBuffer.GetMusTResendFrame();
                         if (frameToSend == null)
                         {
                             frameToSend = outBuffer.FrameToSend();
                         }
                         if (frameToSend != null)
                         {
-                            while (!network.rdyToSend)
-                            { }
-
-                            Console.WriteLine("Sending " + frameToSend.ToString());
-                            network.Send(frameToSend.toBytes());
-                            outBuffer.StartTimer(frameToSend.Id, timeout);
+                            if (network.rdyToSend)
+                            {
+                                Console.WriteLine("Sending " + frameToSend.ToString() + "\n");
+                                network.Send(Hamming.Hamming.AddHamming(frameToSend));
+                                outBuffer.StartTimer(frameToSend.id, timeout);
+                            }
                         }
 
 
                         if (network.rdyToReceiveACK)
                         {
-                            Frame frameACKReceive = new Frame(network.ReceiveACK());
-                            int idFrame = BitConverter.ToInt32(frameACKReceive.data, 0);
-                            Console.WriteLine("Receiving ACK" + idFrame);
+                            Frame frameACKReceive = Hamming.Hamming.RemoveHamming(network.ReceiveACK());
+                            int idFrame = frameACKReceive.id;
+                            Console.WriteLine("Receiving ACK " + frameACKReceive.ToString() + "\n");
                             outBuffer.RemoveFromId(idFrame);
 
                             //enlever le frametimer de la liste selon le id de la frame
@@ -99,17 +103,16 @@ namespace ift585_tp1
                 else if (outputPath != null)
                 {
                     //TODO (Cisco) : Receive frames
-
                     if (network.rdyToReceive)
                     {
-                        Frame frame = new Frame(network.Receive());
-                        Console.WriteLine("Receiving " + frame.ToString());
+                        Frame frame = Hamming.Hamming.RemoveHamming(network.Receive());
+                        Console.WriteLine("Receiving " + frame.ToString() + "\n");
 
                         if (network.rdyToSendACK)
                         {
-                            Frame frameACKSend = new Frame(BitConverter.GetBytes(frame.Id), 2);
-                            Console.WriteLine("Sending ACK" + frame.ToString());
-                            network.SendACK(frameACKSend.toBytes());
+                            Frame frameACKSend = new Frame(frameId++, 2, BitConverter.GetBytes(frame.id));
+                            Console.WriteLine("Sending ACK : " + frameACKSend.ToString() + "\n");
+                            network.SendACK(Hamming.Hamming.AddHamming(frameACKSend));
                         }
                     }
 
@@ -135,7 +138,7 @@ namespace ift585_tp1
             byte[] bytes = new byte[Frame.NB_BYTES]; // TODO read according to data size in frame format
             fs.Read(bytes, 0, Frame.NB_BYTES);
 
-            return new Frame(bytes);
+            return new Frame(frameId++, 0, bytes);
         }
     }
 }
