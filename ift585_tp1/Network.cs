@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
-using HammingCode;
+using ift585_tp1.HammingCode;
 
 namespace ift585_tp1
 {
@@ -48,7 +48,6 @@ namespace ift585_tp1
                     rdyToReceiveACK = true;
                     rdyToSendACK = true;
                 }
-
             }
         }
 

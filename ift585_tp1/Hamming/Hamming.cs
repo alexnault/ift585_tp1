@@ -1,5 +1,4 @@
-﻿using HammingCode;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,7 +11,7 @@ using System.Threading.Tasks;
 
 // We edited it so it fits our code and meet our needs.
 
-namespace ift585_tp1.Hamming
+namespace ift585_tp1.HammingCode
 {
     class Hamming
     {
@@ -29,51 +28,68 @@ namespace ift585_tp1.Hamming
             Binary verification = GenerateVerificationBits(H, binary);
             Binary binaryFrame = Binary.Concatenate(binary, verification);
 
-            /*
-            Console.WriteLine("Binary = {0}", binary);
+            int originalLength = binary.Count();
+            Binary bf = Binary.Concatenate(binaryFrame, new Binary(originalLength, 32));
+
+            /*Console.WriteLine("Binary = {0}", binary);
             Console.WriteLine("H matrix:");
             Console.Write(H);
             Console.WriteLine("Verification = {0}", verification);
             Console.WriteLine("Output Frame = {0}", binaryFrame);
-            Console.WriteLine();
-            */
+            Console.WriteLine();*/
              
-            return binaryFrame;
+            return bf;
         }
 
-        public static Frame RemoveHamming(Binary binaryFrame)
+        /// <summary>
+        /// If it returns false, the frame is corrupted
+        /// </summary>
+        /// <param name="bf"></param>
+        /// <returns></returns>
+        public static Tuple<bool, Frame> RemoveHamming(Binary bf)
         {
+            var g = new Binary(bf.Skip(Math.Max(0, bf.Count() - 32)).Reverse());
+            BitArray conv = toBitArray(g);
+            byte[] lenBytes = new byte[conv.Length];
+            conv.CopyTo(lenBytes, 0);
+            int originalLength = Convert.ToInt32(lenBytes[0]);
+
+            Binary binaryFrame = new Binary(bf);
+            binaryFrame.RemoveLength();
+
             Binary receivedFrame = new Binary(binaryFrame.ToArray());
 
-            int columnsAmount = binaryFrame.Count();
+            int columnsAmount = originalLength;
             int rowsAmount = (int)Math.Ceiling(Math.Log(columnsAmount, 2) + 1);
             BinaryMatrix H = GenerateHMatrix(rowsAmount, columnsAmount);
             
-
-            /*if (corruptMessage.Value) // TODO remove maybe
-            {
-                int badBit = random.Next(0, receivedFrame.Length - 1);
-                receivedFrame[badBit] = !receivedFrame[badBit];
-            }*/
             Binary receivedMessage = new Binary(receivedFrame.Take(columnsAmount));
             Binary receivedVerification = new Binary(receivedFrame.Skip(columnsAmount));
 
             H = GenerateHMatrix(rowsAmount, columnsAmount);
             Binary receivedMessageVerification = GenerateVerificationBits(H, receivedMessage);
-            //Binary s = receivedVerification ^ receivedMessageVerification;
-            /*
-            Console.WriteLine("received frame = {0}", receivedFrame);
+            Binary s = receivedVerification ^ receivedMessageVerification;
+            
+            /*Console.WriteLine("received frame = {0}", receivedFrame);
             Console.WriteLine("H matrix:");
             Console.Write(H);
             Console.WriteLine("received message verification: {0}", receivedMessageVerification);
-            Console.WriteLine("s value: {0}", s);
-            */
-            BitArray test = toBitArray(receivedMessage);
+            Console.WriteLine("s value: {0}", s);*/
 
-            byte[] bytes = new byte[test.Length];
-            test.CopyTo(bytes, 0);
+            BitArray bitarray = toBitArray(receivedMessage);
 
-            return new Frame(bytes);
+            byte[] bytes = new byte[bitarray.Length / 8];
+            bitarray.CopyTo(bytes, 0);
+
+            // Frame has errors
+            if (s.CountOnes() > 0)
+            {
+                return Tuple.Create(false, new Frame(bytes));
+            }
+            else // Frame has no error
+            {
+                return Tuple.Create(true, new Frame(bytes));
+            }
         }
 
         private static Binary toBinary(BitArray bits)

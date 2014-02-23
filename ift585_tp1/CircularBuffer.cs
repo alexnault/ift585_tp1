@@ -13,13 +13,11 @@ namespace ift585_tp1
         protected int head;
         protected int tail;
         protected int count;
-        protected int current;
-
+        
         public CircularBuffer(int length)
         {
             head = 0;
             tail = 0;
-            current = tail;
             this.length = length;
             buffer = new T[this.length];
         }

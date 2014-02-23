@@ -9,10 +9,15 @@ namespace ift585_tp1
 {
     class FrameBuffer : CircularBuffer<Frame>
     {
+        protected int current;
+
         List<FrameTimer> frameTimerList = new List<FrameTimer>();
         private readonly object _mutex = new object();
 
-        public FrameBuffer(int length) : base(length) { }
+        public FrameBuffer(int length) : base(length)
+        {
+            this.current = tail;
+        }
 
         public override void Push(Frame frame)
         {
@@ -32,10 +37,13 @@ namespace ift585_tp1
             return frame;
         }
 
+        // TODO marche pas, current va défoncer la taille du buffer un moment donné
         public Frame FrameToSend()
         {
-            if(current < head)
+            if (current < head)
+            {
                 return buffer[current++];
+            }
             return null;
         }
 

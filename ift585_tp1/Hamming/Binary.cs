@@ -10,13 +10,13 @@ using System.Diagnostics;
 
 // We edited it so it fits our code and meet our needs.
 
-namespace HammingCode
+namespace ift585_tp1.HammingCode
 {
     [DebuggerDisplay("{binary}")]
     class Binary : IEnumerable<bool>
     {
         List<bool> binary;
-
+        
         public int Length { get { return binary.Count; } }
 
         #region Constructors
@@ -32,7 +32,6 @@ namespace HammingCode
 
         public Binary(int value)
         {
-
             binary = new List<bool>(ConvertToBinary(value));
         }
 
@@ -62,6 +61,18 @@ namespace HammingCode
                 toBinary.Insert(0, false);
             }
             return toBinary;
+        }
+
+        public void AddTest()
+        {
+
+        }
+        public void RemoveLength()
+        {
+            if (binary.Count < 32)
+                throw new Exception();
+
+            binary.RemoveRange(binary.Count - 32, 32);
         }
 
         public int CountOnes()

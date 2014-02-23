@@ -1,5 +1,4 @@
-﻿using HammingCode;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,23 +9,24 @@ namespace ift585_tp1
 {
     class Frame
     {
-        // Cannot be edited
+        public enum Type
+        {
+            Normal = 0,
+            ACK = 1,
+            NAK = 2
+        };
+
         public int id { get; private set; }
         public int mustResend { get; set; }
-        protected int type { get; private set; }
+        protected Type type { get; private set; }
         protected int dataLength { get; private set; }
         public byte[] data { get; private set; }
 
-        ///////////////////
-        /*public int ttl;
-        public int type;
-        public int dataLength;
-        protected byte[] data;*/
         protected int checksum;
 
         private byte[] _bytes;
 
-        public const int NB_BYTES = 5; // TODO change to NB_MAX_DATA_BYTES
+        public const int NB_MAX_DATA_BYTES = 5;
 
         /// <summary>
         /// Create a frame with its header's infos
@@ -34,17 +34,14 @@ namespace ift585_tp1
         /// <param name="type"></param>
         /// <param name="data"></param>
         /// <param name="ttl"></param>
-        public Frame(int id, int type, byte[] data, int mustResend = 0)
+        public Frame(int id, Type type, byte[] data, int mustResend = 0)
         {
             this.id = id;
             this.mustResend = mustResend;
             this.type = type;
             this.dataLength = data.Length;
             this.data = data;
-
             this._bytes = toBytes();
-
-            //this.checksum = findChecksum();
         }
 
         /// <summary>
@@ -70,7 +67,7 @@ namespace ift585_tp1
 
             byte[] type = new byte[4];
             Array.Copy(bytes, 8, type, 0, sizeof(int));
-            this.type = BitConverter.ToInt32(type, 0);
+            this.type = (Type)BitConverter.ToInt32(type, 0);
 
             byte[] len = new byte[4];
             Array.Copy(bytes, 12, len, 0, sizeof(int));
@@ -92,13 +89,14 @@ namespace ift585_tp1
             if (_bytes == null)
             {
                 byte[] frame = new byte[5 * sizeof(int) + data.Length];
-                BitConverter.GetBytes(id).CopyTo(frame, 0 * sizeof(int));
-                BitConverter.GetBytes(mustResend).CopyTo(frame, 1 * sizeof(int));
-                BitConverter.GetBytes(type).CopyTo(frame, 2 * sizeof(int));
-                BitConverter.GetBytes(data.Length).CopyTo(frame, 3 * sizeof(int));
-                data.CopyTo(frame, 4 * sizeof(int));
+                BitConverter.GetBytes(this.id).CopyTo(frame, 0 * sizeof(int));
+                BitConverter.GetBytes(this.mustResend).CopyTo(frame, 1 * sizeof(int));
+                BitConverter.GetBytes((int)this.type).CopyTo(frame, 2 * sizeof(int));
+                BitConverter.GetBytes(this.data.Length).CopyTo(frame, 3 * sizeof(int));
+                this.data.CopyTo(frame, 4 * sizeof(int));
 
-                BitConverter.GetBytes(findChecksum(frame, 0, frame.Length)).CopyTo(frame, 4 * sizeof(int) + data.Length);
+                this.checksum = findChecksum(frame, 0, frame.Length - sizeof(int));
+                BitConverter.GetBytes(this.checksum).CopyTo(frame, 4 * sizeof(int) + data.Length);
 
                 _bytes = frame;
             }
@@ -107,21 +105,20 @@ namespace ift585_tp1
 
         protected int findChecksum(byte[] bytes, int start, int end)
         {
+            if (start > end)
+                throw new InvalidOperationException("Start has to be lower than end.");
+
             int checksum = 0;
-            foreach (byte b in bytes)
+            for (int i = start; i < end; i++ )
             {
-                checksum += b;
+                checksum += bytes[i];
             }
             return checksum;
         }
 
         public bool checksumIsFine()
         {
-            if (checksum >= 0) // if checksum is set
-            {
-                return findChecksum(_bytes, 0, _bytes.Length - sizeof(int)) == checksum;
-            }
-            return true;
+            return findChecksum(_bytes, 0, _bytes.Length - sizeof(int)) == checksum;
         }
 
         public override string ToString()
@@ -132,7 +129,8 @@ namespace ift585_tp1
             {
                 dataString += data[i] + " ";
             }
-            s += string.Format(" data={0} \n", dataString, checksum);
+            //s += string.Format(" data={0} \n", dataString, checksum);
+            s += string.Format(" checksum={0}", checksum);
             return s;
         }
 

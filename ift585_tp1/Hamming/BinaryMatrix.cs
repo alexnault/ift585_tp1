@@ -8,7 +8,7 @@ using System.Text;
 
 // We edited it so it fits our code and meet our needs.
 
-namespace HammingCode
+namespace ift585_tp1.HammingCode
 {
     class BinaryMatrix
     {

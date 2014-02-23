@@ -7,17 +7,16 @@ using System.Threading;
 using System.IO;
 using System.Timers;
 using System.Diagnostics;
+using ift585_tp1.HammingCode;
 
 namespace ift585_tp1
 {
     class EndDevice
     {
-        //protected Network network;
-
         protected string inputPath;
-        protected FileStream fs;
-
+        protected FileStream infs;
         protected string outputPath;
+        protected FileStream outfs;
 
         protected int timeout;
 
@@ -25,25 +24,22 @@ namespace ift585_tp1
 
         protected int frameId;
 
-        //public readonly AutoResetEvent send = new AutoResetEvent(false);
-        //public readonly AutoResetEvent receive = new AutoResetEvent(false);
-
-        protected Network network;
+        protected readonly Network network;
 
         public EndDevice(Network network, int bufferLength, string inputPath, string outputPath, int timeout)
         {
             this.network = network;
             this.inputPath = inputPath;
             if (this.inputPath != null)
-                fs = File.OpenRead(inputPath);
-
+                infs = File.OpenRead(inputPath);
             this.outputPath = outputPath;
+            //if (this.outputPath != null)
+            //    outfs = File.OpenRead(outputPath);
 
             this.timeout = timeout;
 
-            outBuffer = new FrameBuffer(bufferLength * Frame.NB_BYTES);
+            outBuffer = new FrameBuffer(bufferLength * Frame.NB_MAX_DATA_BYTES);
         }
-
 
         public void Start()
         {
@@ -52,93 +48,93 @@ namespace ift585_tp1
 
         private void Run()
         {
-            //bool once = true; // TODO (Cisco) remove
-
             while (true)
             {
+                // EMITTER
                 if (inputPath != null)
                 {
-                    // Read and insert in buffer
+                    // Read and insert in outbuffer
                     if (!outBuffer.IsFull())
                     {
-                        Frame frame = ReadNext();
-                        if (frame != null)
+                        byte[] bytes = ReadNext();
+                        if (bytes != null)
+                        {
+                            Frame frame = new Frame(frameId++, Frame.Type.Normal, bytes);
                             outBuffer.Push(frame);
+                        }
                     }
-
-                    // Try sending
-                    if (!outBuffer.IsEmpty())
+                    // Send frame
+                    if (!outBuffer.IsEmpty() && network.rdyToSend)
                     {
-
-                        Frame frameToSend = null;
-
-                        frameToSend = outBuffer.GetMusTResendFrame();
+                        Frame frameToSend = outBuffer.GetMusTResendFrame();
                         if (frameToSend == null)
                         {
                             frameToSend = outBuffer.FrameToSend();
                         }
                         if (frameToSend != null)
                         {
-                            if (network.rdyToSend)
-                            {
-                                Console.WriteLine("Sending " + frameToSend.ToString() + "\n");
-                                network.Send(Hamming.Hamming.AddHamming(frameToSend));
-                                outBuffer.StartTimer(frameToSend.id, timeout);
-                            }
+                            Console.WriteLine("Sending " + frameToSend.ToString());
+                            network.Send(Hamming.AddHamming(frameToSend));
+                            outBuffer.StartTimer(frameToSend.id, timeout);
                         }
+                    }
+                    // Receive ACK/NAK
+                    if (network.rdyToReceiveACK)
+                    {
+                        Tuple<bool, Frame> t = Hamming.RemoveHamming(network.ReceiveACK());
+                        bool hammingIsFine = t.Item1;
+                        Frame acknak = t.Item2;
+                        
+                        int idFrame = acknak.id;
+                        Console.WriteLine("Receiving ACK " + acknak.ToString());
+                        outBuffer.RemoveFromId(idFrame);
 
-
-                        if (network.rdyToReceiveACK)
-                        {
-                            Frame frameACKReceive = Hamming.Hamming.RemoveHamming(network.ReceiveACK());
-                            int idFrame = frameACKReceive.id;
-                            Console.WriteLine("Receiving ACK " + frameACKReceive.ToString() + "\n");
-                            outBuffer.RemoveFromId(idFrame);
-
-                            //enlever le frametimer de la liste selon le id de la frame
-                            outBuffer.RemoveFrameTimer(idFrame);
-                        }
+                        //enlever le frametimer de la liste selon le id de la frame
+                        outBuffer.RemoveFrameTimer(idFrame);
                     }
                 }
+                // RECEIVER
                 else if (outputPath != null)
                 {
-                    //TODO (Cisco) : Receive frames
-                    if (network.rdyToReceive)
+                    // Receive frame and add response to buffer
+                    if (network.rdyToReceive && !outBuffer.IsFull())
                     {
-                        Frame frame = Hamming.Hamming.RemoveHamming(network.Receive());
-                        Console.WriteLine("Receiving " + frame.ToString() + "\n");
+                        Binary binary = network.Receive();
+                        Tuple<bool, Frame> t = Hamming.RemoveHamming(binary);
+                        bool hammingIsFine = t.Item1;
+                        Frame frame = t.Item2;
+                        Console.WriteLine("Receiving " + frame.ToString());
 
-                        if (network.rdyToSendACK)
+                        if (!hammingIsFine || !frame.checksumIsFine())
                         {
-                            Frame frameACKSend = new Frame(frameId++, 2, BitConverter.GetBytes(frame.id));
-                            Console.WriteLine("Sending ACK : " + frameACKSend.ToString() + "\n");
-                            network.SendACK(Hamming.Hamming.AddHamming(frameACKSend));
+                            outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(frame.id)));
+                        }
+                        else
+                        {
+                            outBuffer.Push(new Frame(frameId++, Frame.Type.ACK, BitConverter.GetBytes(frame.id)));
+                            // TODO write in output file
                         }
                     }
-
-
-
-                    /*if (!inBuffer.IsEmpty())
+                    // Send ACK/NAK
+                    if (network.rdyToSendACK && !outBuffer.IsEmpty())
                     {
-                        Console.WriteLine("receiver received");
-                        Frame frame = inBuffer.Pop();
-
-                        Console.WriteLine(frame.ToString());
-                        Console.WriteLine(inBuffer.ToString());
-                    }*/
+                        Frame acknak = outBuffer.Pop(); // Receiver's buffer
+                        Console.WriteLine("Sending ACK : " + acknak.ToString());
+                        network.SendACK(Hamming.AddHamming(acknak));
+                    }
                 }
             }
         }
 
-        private Frame ReadNext()
+        private byte[] ReadNext()
         {
-            if (fs.Position >= fs.Length)
-                return null; // TODO and close stream
+            if (infs.Position >= infs.Length)
+                return null; // TODO close stream
 
-            byte[] bytes = new byte[Frame.NB_BYTES]; // TODO read according to data size in frame format
-            fs.Read(bytes, 0, Frame.NB_BYTES);
+            byte[] bytes = new byte[Frame.NB_MAX_DATA_BYTES];
+            infs.Read(bytes, 0, Frame.NB_MAX_DATA_BYTES);
 
-            return new Frame(frameId++, 0, bytes);
+            return bytes;
         }
     }
 }
