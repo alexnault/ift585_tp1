@@ -13,10 +13,10 @@ using System.Diagnostics;
 namespace ift585_tp1.HammingCode
 {
     [DebuggerDisplay("{binary}")]
+    [Serializable]
     class Binary : IEnumerable<bool>
     {
         List<bool> binary;
-        
         public int Length { get { return binary.Count; } }
 
         #region Constructors

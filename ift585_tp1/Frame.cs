@@ -18,7 +18,7 @@ namespace ift585_tp1
 
         public int id { get; private set; }
         public int mustResend { get; set; }
-        protected Type type { get; private set; }
+        public Type type { get; private set; }
         protected int dataLength { get; private set; }
         public byte[] data { get; private set; }
 
