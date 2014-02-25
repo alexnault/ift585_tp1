@@ -122,14 +122,14 @@ namespace ift585_tp1
         /// <param name="id"></param>
         private void Callback(Object id)
         {
-            Console.WriteLine("Timeout");
+            Console.WriteLine("Timeout " + (int)id);
             //on va chercher le frame dans le buffer selon le id
             Frame frame = GetFrameFromId((int)id);
-            if(frame!=null)
-             frame.mustResend = 1;
+            if (frame != null)
+                frame.mustResend = 1;
         }
 
-        public Frame GetMusTResendFrame()
+        public Frame GetMustResendFrame()
         {
             for (int i = 0; i < count; i++)
             {
@@ -139,9 +139,7 @@ namespace ift585_tp1
                     return buffer[i];
                 }
             }
-
             return null;
-
         }
     }
 }

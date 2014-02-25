@@ -19,7 +19,7 @@ namespace ift585_tp1
                 // Le fichier à copier
                 string file = "./input.txt";
                 // L'emplacement de destination	pour la	copie du fichier.
-                string savePath = "./blabla/out/chat.txt";
+                string savePath = "./output.txt";
             #else
                 int bufferLength = 0;
                 int timeout = 0;

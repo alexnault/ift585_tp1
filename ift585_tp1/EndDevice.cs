@@ -26,6 +26,8 @@ namespace ift585_tp1
 
         protected readonly Network network;
 
+        protected int awaitedFrameId = 0;
+
         public EndDevice(Network network, int bufferLength, string inputPath, string outputPath, int timeout)
         {
             this.network = network;
@@ -33,8 +35,8 @@ namespace ift585_tp1
             if (this.inputPath != null)
                 infs = File.OpenRead(inputPath);
             this.outputPath = outputPath;
-            //if (this.outputPath != null)
-            //    outfs = File.OpenRead(outputPath);
+            if (this.outputPath != null)
+                outfs = File.OpenWrite(outputPath);
 
             this.timeout = timeout;
 
@@ -66,7 +68,7 @@ namespace ift585_tp1
                     // Send frame
                     if (!outBuffer.IsEmpty() && network.rdyToSend)
                     {
-                        Frame frameToSend = outBuffer.GetMusTResendFrame();
+                        Frame frameToSend = outBuffer.GetMustResendFrame();
                         if (frameToSend == null)
                         {
                             frameToSend = outBuffer.FrameToSend();
@@ -83,14 +85,21 @@ namespace ift585_tp1
                     {
                         Tuple<bool, Frame> t = Hamming.RemoveHamming(network.ReceiveACK());
                         bool hammingIsFine = t.Item1;
-                        Frame acknak = t.Item2;
+                        Frame ackOrNak = t.Item2;
                         
-                        int idFrame = acknak.id;
-                        Console.WriteLine("Receiving ACK " + acknak.ToString());
-                        outBuffer.RemoveFromId(idFrame);
+                        int ackOrNakForId = BitConverter.ToInt32(ackOrNak.data, 0);
 
-                        //enlever le frametimer de la liste selon le id de la frame
-                        outBuffer.RemoveFrameTimer(idFrame);
+                        if (ackOrNak.type == Frame.Type.ACK)
+                        {
+                            Console.WriteLine("Receiving ACK " + ackOrNak.ToString());
+                            outBuffer.RemoveFromId(ackOrNakForId);
+                            outBuffer.RemoveFrameTimer(ackOrNakForId);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Receiving NAK " + ackOrNak.ToString());
+                            outBuffer.GetFrameFromId(ackOrNakForId).mustResend = 1;
+                        }
                     }
                 }
                 // RECEIVER
@@ -103,16 +112,30 @@ namespace ift585_tp1
                         Tuple<bool, Frame> t = Hamming.RemoveHamming(binary);
                         bool hammingIsFine = t.Item1;
                         Frame frame = t.Item2;
-                        Console.WriteLine("Receiving " + frame.ToString());
 
-                        if (!hammingIsFine || !frame.checksumIsFine())
+                        if (frame.id > awaitedFrameId)
                         {
-                            outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(frame.id)));
+                            Console.WriteLine("Receiving " + frame.ToString() + ", global reject.");
+                            outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(awaitedFrameId)));
+                        }
+                        else if (frame.id == awaitedFrameId)
+                        {
+                            if (!hammingIsFine || !frame.checksumIsFine())
+                            {
+                                Console.WriteLine("Receiving " + frame.ToString() + ", reject due to error.");
+                                outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(frame.id)));
+                            }
+                            else
+                            {
+                                Console.WriteLine("Receiving " + frame.ToString() + ", OK.");
+                                awaitedFrameId++;
+                                outBuffer.Push(new Frame(frameId++, Frame.Type.ACK, BitConverter.GetBytes(frame.id)));
+                                WriteNext(frame.data);
+                            }
                         }
                         else
                         {
-                            outBuffer.Push(new Frame(frameId++, Frame.Type.ACK, BitConverter.GetBytes(frame.id)));
-                            // TODO write in output file
+                            Console.WriteLine("Receiving " + frame.ToString() + ", ignore since we already have it.");
                         }
                     }
                     // Send ACK/NAK
@@ -135,6 +158,12 @@ namespace ift585_tp1
             infs.Read(bytes, 0, Frame.NB_MAX_DATA_BYTES);
 
             return bytes;
+        }
+
+        private void WriteNext(byte[] data)
+        {
+            outfs.Write(data, 0, data.Length);
+            outfs.Flush(); // Ensure the data is written
         }
     }
 }

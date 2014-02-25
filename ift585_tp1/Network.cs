@@ -22,8 +22,6 @@ namespace ift585_tp1
         public bool rdyToSendACK = true;
         public bool rdyToReceiveACK = false;
 
-        // TODO ACK & NAK logic (duplicate properties)
-
         public void Start()
         {
             Run();
@@ -65,11 +63,11 @@ namespace ift585_tp1
 
         public void SendACK(Binary data)
         {
-            rdyToSendACK = false;
             if (data != null)
             {
                 sourceACK = data;
             }
+            rdyToSendACK = false;
         }
 
         public Binary ReceiveACK()
