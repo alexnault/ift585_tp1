@@ -8,6 +8,7 @@ using System.IO;
 using System.Timers;
 using System.Diagnostics;
 using ift585_tp1.HammingCode;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace ift585_tp1
 {
@@ -47,6 +48,24 @@ namespace ift585_tp1
         {
             Run();
         }
+        
+        /// <summary>
+        /// Copie de l'objet
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public static T DeepClone<T>(T obj)
+        {
+            using (var ms = new MemoryStream())
+            {
+                var formatter = new BinaryFormatter();
+                formatter.Serialize(ms, obj);
+                ms.Position = 0;
+
+                return (T)formatter.Deserialize(ms);
+            }
+        }
 
         private void Run()
         {
@@ -83,7 +102,9 @@ namespace ift585_tp1
                     // Receive ACK/NAK
                     if (network.rdyToReceiveACK)
                     {
-                        Tuple<bool, Frame> t = Hamming.RemoveHamming(network.ReceiveACK());
+                        //On copie l'objet car il peut être modififé ailleurs dans un autre Thread
+                        Binary binary = DeepClone<Binary>(network.ReceiveACK());
+                        Tuple<bool, Frame> t = Hamming.RemoveHamming(binary);
                         bool hammingIsFine = t.Item1;
                         Frame ackOrNak = t.Item2;
                         
@@ -108,7 +129,8 @@ namespace ift585_tp1
                     // Receive frame and add response to buffer
                     if (network.rdyToReceive && !outBuffer.IsFull())
                     {
-                        Binary binary = network.Receive();
+                        //On copie l'objet car il peut être modififé ailleurs dans un autre Thread
+                        Binary binary = DeepClone<Binary>(network.Receive());
                         Tuple<bool, Frame> t = Hamming.RemoveHamming(binary);
                         bool hammingIsFine = t.Item1;
                         Frame frame = t.Item2;
@@ -141,9 +163,12 @@ namespace ift585_tp1
                     // Send ACK/NAK
                     if (network.rdyToSendACK && !outBuffer.IsEmpty())
                     {
-                        Frame acknak = outBuffer.Pop(); // Receiver's buffer
-                        Console.WriteLine("Sending ACK : " + acknak.ToString());
-                        network.SendACK(Hamming.AddHamming(acknak));
+                        Frame ackOrNak = outBuffer.Pop(); // Receiver's buffer
+                        if(ackOrNak.type == Frame.Type.ACK)
+                            Console.WriteLine("Sending ACK : " + ackOrNak.ToString());
+                        else
+                            Console.WriteLine("Sending NAC : " + ackOrNak.ToString());
+                        network.SendACK(Hamming.AddHamming(ackOrNak));
                     }
                 }
             }

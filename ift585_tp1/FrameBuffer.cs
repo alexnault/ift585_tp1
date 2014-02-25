@@ -112,8 +112,11 @@ namespace ift585_tp1
         public void RemoveFrameTimer(int id)
         {
             FrameTimer timerFrame = frameTimerList.FirstOrDefault(x => x.Id == id);
-            timerFrame.Timer.Dispose();
-            frameTimerList.Remove(timerFrame);
+            if (timerFrame != null)
+            {
+                timerFrame.Timer.Dispose();
+                frameTimerList.Remove(timerFrame);
+            }
         }
 
         /// <summary>
@@ -126,7 +129,7 @@ namespace ift585_tp1
             //on va chercher le frame dans le buffer selon le id
             Frame frame = GetFrameFromId((int)id);
             if (frame != null)
-                frame.mustResend = 1;
+                SetMustResendFrame(frame.id);
         }
 
         public Frame GetMustResendFrame()
@@ -141,5 +144,18 @@ namespace ift585_tp1
             }
             return null;
         }
+
+        public void SetMustResendFrame(int id)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                if (buffer[i].id == id)
+                {
+                    buffer[i].mustResend = 1;
+                }
+            }
+        }
     }
+
+ 
 }
