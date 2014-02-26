@@ -27,12 +27,13 @@ namespace ift585_tp1
                 int timeout = 0;
                 int windowSize = 0;
                 int errorType = 0;
+                int bitFlipper = 0; 
                 string protocolType = "";
                 string file = "";
                 string savePath = "";
-                if (args.Length < 7 )
+                if (args.Length < 8 )
                 {
-                    Console.WriteLine("Not enough args set. Needs 7."); // Check for null array
+                    Console.WriteLine("Not enough args set. Needs 8."); // Check for null array
 
                 }
                 else
@@ -44,9 +45,10 @@ namespace ift585_tp1
                     windowSize = Convert.ToInt32(args[4]);
                     protocolType = args[5];
                     errorType = Convert.ToInt32(args[6]);
+                    bitFlipper = Convert.ToInt32(args[7]);
                 }
 #endif
-            Network network = new Network(errorType, timeout);
+            Network network = new Network(errorType, bitFlipper, timeout);
             EndDevice receiver = new EndDevice(network, bufferLength, null, savePath, timeout);
             EndDevice emitter = new EndDevice(network, bufferLength, file, null, timeout);
 

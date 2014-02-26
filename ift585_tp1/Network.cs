@@ -19,11 +19,13 @@ namespace ift585_tp1
         protected Binary destinationACK;
         public bool rdyToSendACK = true;
         public bool rdyToReceiveACK = false;
-        public int errorType;
-        public int timeout;
-        public Network(int errorType, int timeout)
+        protected int errorType;
+        protected int timeout;
+        protected int bitFlipper;
+        public Network(int errorType, int bitFlipper, int timeout)
         {
             this.errorType = errorType;
+            this.bitFlipper = bitFlipper;
             this.timeout = timeout;
         }
         public void Start()
@@ -44,9 +46,14 @@ namespace ift585_tp1
                     switch (errorType)
                     {
                         case 0:
-                            Random random = new Random();
-                            int randomNumber = random.Next(128, destination.Length);
-                            destination[134] = !destination[134];
+                            if (bitFlipper >= 0 && bitFlipper < destination.Length)
+                            {
+                                destination[bitFlipper] = !destination[bitFlipper];
+                            }
+                            else
+                            {
+                                Console.WriteLine("The number set in the parameter is out of bound");
+                            }
                             break;
                         case 1:
                             Thread.Sleep(timeout);
