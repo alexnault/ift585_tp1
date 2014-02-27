@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -11,40 +12,60 @@ namespace ift585_tp1
     {
         static void Main(string[] args)
         {
+            int bufferLength = 0;
+            int timeout = 0;
+            int errorType = 0;
+            int bitFlipper = 0;
+            int protocolType = 0;
+            string file = "";
+            string savePath = "";
+
 #if (DEBUG)
-            // La taille du tampon utilisé de chaque côté du thread simulant le réseau (tampon d'envoi).
-            int bufferLength = 3;
-            // Le délai de temporisation (time-out) de l'émetteur.
-            int timeout = 1000;
-            // Le fichier à copier
-            string file = "./input.txt";
-            // L'emplacement de destination	pour la	copie du fichier.
-            string savePath = "./output.txt";
 
-            int errorType = 3;
+            if (args.Length < 7)
+            {
+                Console.WriteLine("Not enough args set. Needs 7."); // Check for null array
+
+            }
+            else
+            {
+                bufferLength = Convert.ToInt32(args[0]);
+                timeout = Convert.ToInt32(args[1]);
+                file = args[2];
+                savePath = args[3];
+                protocolType = Convert.ToInt32(args[4]);
+                errorType = Convert.ToInt32(args[5]);
+                bitFlipper = Convert.ToInt32(args[6]);
+            }
 #else
-                int bufferLength = 0;
-                int timeout = 0;
-                int errorType = 0;
-                int bitFlipper = 0; 
-                int protocolType = 0;
-                string file = "";
-                string savePath = "";
-                if (args.Length < 7 )
+            const string f = "./config.txt";
+            int ctrParam = 0;
+            List<string> lines = new List<string>();
+            using (StreamReader r = new StreamReader(f))
+            {
+                string line;
+                while ((line = r.ReadLine()) != null)
                 {
-                    Console.WriteLine("Not enough args set. Needs 7."); // Check for null array
+                    lines.Add(line);
+                    ctrParam++;
+                }
+            }
 
-                }
-                else
-                {
-                    bufferLength = Convert.ToInt32(args[0]);
-                    timeout = Convert.ToInt32(args[1]);
-                    file = args[2];
-                    savePath = args[3];
-                    protocolType = Convert.ToInt32(args[4]);
-                    errorType = Convert.ToInt32(args[5]);
-                    bitFlipper = Convert.ToInt32(args[6]);
-                }
+            if (ctrParam < 7)
+            {
+                Console.WriteLine("Not enough args set. Needs 7."); // Check for null array
+
+            }
+            else
+            {
+                bufferLength = Convert.ToInt32(lines[0]);
+                timeout = Convert.ToInt32(lines[1]);
+                file = lines[2];
+                savePath = lines[3];
+                protocolType = Convert.ToInt32(lines[4]);
+                errorType = Convert.ToInt32(lines[5]);
+                bitFlipper = Convert.ToInt32(lines[6]);
+            }
 #endif
             Network network = new Network(errorType, bitFlipper, timeout);
             EndDevice receiver = new EndDevice(network, bufferLength, null, savePath, timeout, protocolType);
