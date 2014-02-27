@@ -25,15 +25,14 @@ namespace ift585_tp1
 #else
                 int bufferLength = 0;
                 int timeout = 0;
-                int windowSize = 0;
                 int errorType = 0;
                 int bitFlipper = 0; 
                 string protocolType = "";
                 string file = "";
                 string savePath = "";
-                if (args.Length < 8 )
+                if (args.Length < 7 )
                 {
-                    Console.WriteLine("Not enough args set. Needs 8."); // Check for null array
+                    Console.WriteLine("Not enough args set. Needs 7."); // Check for null array
 
                 }
                 else
@@ -42,10 +41,9 @@ namespace ift585_tp1
                     timeout = Convert.ToInt32(args[1]);
                     file = args[2];
                     savePath = args[3];
-                    windowSize = Convert.ToInt32(args[4]);
-                    protocolType = args[5];
-                    errorType = Convert.ToInt32(args[6]);
-                    bitFlipper = Convert.ToInt32(args[7]);
+                    protocolType = args[4];
+                    errorType = Convert.ToInt32(args[5]);
+                    bitFlipper = Convert.ToInt32(args[6]);
                 }
 #endif
             Network network = new Network(errorType, bitFlipper, timeout);
