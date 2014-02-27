@@ -14,6 +14,11 @@ namespace ift585_tp1
 {
     class EndDevice
     {
+        public enum protocol
+        {
+            global = 0,
+            selectif = 1
+        };
         protected string inputPath;
         protected FileStream infs;
         protected string outputPath;
@@ -27,9 +32,10 @@ namespace ift585_tp1
 
         protected readonly Network network;
 
+        protected int protocolType = 0;
         protected int awaitedFrameId = 0;
 
-        public EndDevice(Network network, int bufferLength, string inputPath, string outputPath, int timeout)
+        public EndDevice(Network network, int bufferLength, string inputPath, string outputPath, int timeout, int protocolType)
         {
             this.network = network;
             this.inputPath = inputPath;
@@ -40,7 +46,7 @@ namespace ift585_tp1
                 outfs = File.OpenWrite(outputPath);
 
             this.timeout = timeout;
-
+            this.protocolType = protocolType;
             outBuffer = new FrameBuffer(bufferLength * Frame.NB_MAX_DATA_BYTES);
         }
 
@@ -48,7 +54,7 @@ namespace ift585_tp1
         {
             Run();
         }
-        
+
         /// <summary>
         /// Copie de l'objet
         /// </summary>
@@ -107,7 +113,7 @@ namespace ift585_tp1
                         Tuple<bool, Frame> t = Hamming.RemoveHamming(binary);
                         bool hammingIsFine = t.Item1;
                         Frame ackOrNak = t.Item2;
-                        
+
                         int ackOrNakForId = BitConverter.ToInt32(ackOrNak.data, 0);
 
                         if (ackOrNak.type == Frame.Type.ACK)
@@ -135,12 +141,38 @@ namespace ift585_tp1
                         bool hammingIsFine = t.Item1;
                         Frame frame = t.Item2;
 
-                        if (frame.id > awaitedFrameId)
+                        #region "Algo de rejet global"
+                        if (protocolType == (int)protocol.global)
                         {
-                            Console.WriteLine("Receiving " + frame.ToString() + ", global reject.");
-                            outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(awaitedFrameId)));
+                            if (frame.id > awaitedFrameId)
+                            {
+                                Console.WriteLine("Receiving " + frame.ToString() + ", global reject.");
+                                outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(awaitedFrameId)));
+                            }
+                            else if (frame.id == awaitedFrameId)
+                            {
+                                if (!hammingIsFine || !frame.checksumIsFine())
+                                {
+                                    Console.WriteLine("Receiving " + frame.ToString() + ", reject due to error.");
+                                    outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(frame.id)));
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Receiving " + frame.ToString() + ", OK.");
+                                    awaitedFrameId++;
+                                    outBuffer.Push(new Frame(frameId++, Frame.Type.ACK, BitConverter.GetBytes(frame.id)));
+                                    WriteNext(frame.data);
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("Receiving " + frame.ToString() + ", ignore since we already have it.");
+                            }
                         }
-                        else if (frame.id == awaitedFrameId)
+                        #endregion
+
+                        #region "Algo selectif"
+                        else if (protocolType == (int)protocol.selectif)
                         {
                             if (!hammingIsFine || !frame.checksumIsFine())
                             {
@@ -155,16 +187,14 @@ namespace ift585_tp1
                                 WriteNext(frame.data);
                             }
                         }
-                        else
-                        {
-                            Console.WriteLine("Receiving " + frame.ToString() + ", ignore since we already have it.");
-                        }
+                        #endregion
+
                     }
                     // Send ACK/NAK
                     if (network.rdyToSendACK && !outBuffer.IsEmpty())
                     {
                         Frame ackOrNak = outBuffer.Pop(); // Receiver's buffer
-                        if(ackOrNak.type == Frame.Type.ACK)
+                        if (ackOrNak.type == Frame.Type.ACK)
                             Console.WriteLine("Sending ACK : " + ackOrNak.ToString());
                         else
                             Console.WriteLine("Sending NAC : " + ackOrNak.ToString());

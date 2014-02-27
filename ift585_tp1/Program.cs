@@ -27,7 +27,7 @@ namespace ift585_tp1
                 int timeout = 0;
                 int errorType = 0;
                 int bitFlipper = 0; 
-                string protocolType = "";
+                int protocolType = 0;
                 string file = "";
                 string savePath = "";
                 if (args.Length < 7 )
@@ -41,14 +41,14 @@ namespace ift585_tp1
                     timeout = Convert.ToInt32(args[1]);
                     file = args[2];
                     savePath = args[3];
-                    protocolType = args[4];
+                    protocolType = Convert.ToInt32(args[4]);
                     errorType = Convert.ToInt32(args[5]);
                     bitFlipper = Convert.ToInt32(args[6]);
                 }
 #endif
             Network network = new Network(errorType, bitFlipper, timeout);
-            EndDevice receiver = new EndDevice(network, bufferLength, null, savePath, timeout);
-            EndDevice emitter = new EndDevice(network, bufferLength, file, null, timeout);
+            EndDevice receiver = new EndDevice(network, bufferLength, null, savePath, timeout, protocolType);
+            EndDevice emitter = new EndDevice(network, bufferLength, file, null, timeout, protocolType);
 
 
             Thread networkThread = new Thread(new ThreadStart(network.Start));
