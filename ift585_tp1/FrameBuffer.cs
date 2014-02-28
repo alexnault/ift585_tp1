@@ -37,19 +37,21 @@ namespace ift585_tp1
             return frame;
         }
 
-        // TODO marche pas, current va défoncer la taille du buffer un moment donné
         public Frame FrameToSend()
         {
-            if (current < head)
+            Frame toSend = null;
+            if ( (tail < head && current >= tail && current < head) // [...T...C...H...] or
+                || (tail > head && !(current >= head && current < tail) ) ) // [...H...T...C...] or [...C...H...T...]
             {
-                return buffer[current++];
+                toSend = buffer[current];
+                current = (current + 1) % length;
             }
-            return null;
+            return toSend;
         }
 
         public Frame GetFrameFromId(int id)
         {
-            return buffer.FirstOrDefault(x => x!=null && x.id == id);
+            return buffer.FirstOrDefault(x => x != null && x.id == id);
         }
 
         public void RemoveFromId(int id)
@@ -58,9 +60,29 @@ namespace ift585_tp1
             {
                 if (buffer[i].id == id)
                 {
-                    this.RemoveAt(i);
+                    lock (_mutex)
+                    {
+                        this.RemoveAt(i);
+                    }
                     break;
                 }
+            }
+        }
+
+        public void RemoveLessOrEqualId(int id)
+        {
+            int i = 0;
+            while ( i < count)
+            {
+                if (buffer[i].id <= id)
+                {
+                    lock (_mutex)
+                    {
+                        this.RemoveAt(i);
+                    }
+                }
+                else
+                    i++;
             }
         }
 
@@ -89,9 +111,10 @@ namespace ift585_tp1
             count--;
         }
 
-
-
-        // TODO Logic for getting data without popping it.
+        public int GetFreeCount()
+        {
+            return length - count;
+        }
 
         /// <summary>
         /// Create Timer and add to the list
@@ -106,16 +129,21 @@ namespace ift585_tp1
         }
 
         /// <summary>
-        /// Remove FrameTimer and stop it
+        /// Remove FrameTimers which id are less or equal to the specified id and stop them
         /// </summary>
         /// <param name="id"></param>
-        public void RemoveFrameTimer(int id)
+        public void RemoveFrameTimerLessOrEqualId(int id)
         {
-            FrameTimer timerFrame = frameTimerList.FirstOrDefault(x => x.Id == id);
-            if (timerFrame != null)
+            int i = 0;
+            while ( i < frameTimerList.Count)
             {
-                timerFrame.Timer.Dispose();
-                frameTimerList.Remove(timerFrame);
+                if (frameTimerList[i].Id <= id)
+                {
+                    frameTimerList[i].Timer.Dispose();
+                    frameTimerList.RemoveAt(i);
+                }
+                else
+                    i++;
             }
         }
 
