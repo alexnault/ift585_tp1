@@ -92,8 +92,6 @@ namespace ift585_tp1.HammingCode
                     correctedFrame[faultyBitPosition] = !correctedFrame[faultyBitPosition];
                     bool d = correctedFrame[faultyBitPosition];
 
-                    Console.WriteLine("Fault bit possition founded: {0}", faultyBitPosition);
-
                     Binary correctedFrameGeneratedVerify = GenerateVerificationBits(H, new Binary(correctedFrame.Take(columnsAmount)));
                     Binary correctedFrameVerify = new Binary(correctedFrame.Skip(columnsAmount));
                     Binary correctionVerify = correctedFrameVerify ^ correctedFrameGeneratedVerify;
@@ -114,7 +112,6 @@ namespace ift585_tp1.HammingCode
             BitArray bitarray = toBitArray(receivedMessage);
             byte[] bytes = new byte[receivedMessage.Length / 8];
             bitarray.CopyTo(bytes, 0);
-            Console.WriteLine(corrupted);
             return Tuple.Create(!corrupted, new Frame(bytes));
         }
 

@@ -39,15 +39,15 @@ namespace ift585_tp1
                 // Emitter --> Receiver
                 if (!rdyToSend && !rdyToReceive)
                 {
-                    // Generate error == 0
+                    // Generate error == 0 else debug purpose
                     switch (errorType)
                     {
                         case 0:
-                            Console.WriteLine("Insert error flipping bit(1), timeout(2).");
+                            Console.WriteLine(">Insert error: No error(0), Flipping bit(1), Destroy frame(2).");
                             string sErrorType = Console.ReadLine();
                             if (sErrorType == "1") 
                             {
-                                Console.WriteLine("Which bit you want to flip(0 to "+ source.Length + " )?");
+                                Console.WriteLine(">Bit to flip: (0 to "+ source.Length + ")?");
                                 string sbitFlipper = Console.ReadLine();
                                 if (Convert.ToInt32(sbitFlipper) >= 0 && Convert.ToInt32(sbitFlipper) < source.Length) 
                                 {
@@ -57,19 +57,29 @@ namespace ift585_tp1
                                 {
                                     Console.WriteLine("The number set in the parameter is out of bound");
                                 }
+
+                                destination = source; // might need to make copy instead
+                                rdyToReceive = true;
+                                rdyToSend = true;
                             }
                             else if (sErrorType == "2")
                             {
-                                Thread.Sleep(timeout+1000);
+                                // frame is lost
+                                rdyToSend = true;
+                            }
+                            else
+                            {
+                                destination = source; // might need to make copy instead
+                                rdyToReceive = true;
+                                rdyToSend = true;
                             }
                             break;
                         default:
+                            destination = source; // might need to make copy instead
+                            rdyToReceive = true;
+                            rdyToSend = true;
                             break;
                     }
-
-                    destination = source; // might need to make copy instead
-                    rdyToReceive = true;
-                    rdyToSend = true;
                 }
 
                 // Receiver --> Emitter (ACK & NAK)*/
