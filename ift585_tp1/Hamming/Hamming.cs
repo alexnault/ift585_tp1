@@ -114,7 +114,6 @@ namespace ift585_tp1.HammingCode
             BitArray bitarray = toBitArray(receivedMessage);
             byte[] bytes = new byte[receivedMessage.Length / 8];
             bitarray.CopyTo(bytes, 0);
-            Console.WriteLine(corrupted);
             return Tuple.Create(!corrupted, new Frame(bytes));
         }
 
