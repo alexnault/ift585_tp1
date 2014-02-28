@@ -15,16 +15,15 @@ namespace ift585_tp1
             int bufferLength = 0;
             int timeout = 0;
             int errorType = 0;
-            int bitFlipper = 0;
             int protocolType = 0;
             string file = "";
             string savePath = "";
 
 #if (DEBUG)
 
-            if (args.Length < 7)
+            if (args.Length < 6)
             {
-                Console.WriteLine("Not enough args set. Needs 7."); // Check for null array
+                Console.WriteLine("Not enough args set. Needs 6."); // Check for null array
 
             }
             else
@@ -35,7 +34,6 @@ namespace ift585_tp1
                 savePath = args[3];
                 protocolType = Convert.ToInt32(args[4]);
                 errorType = Convert.ToInt32(args[5]);
-                bitFlipper = Convert.ToInt32(args[6]);
             }
 #else
             const string f = "./config.txt";
@@ -51,9 +49,9 @@ namespace ift585_tp1
                 }
             }
 
-            if (ctrParam < 7)
+            if (ctrParam < 6)
             {
-                Console.WriteLine("Not enough args set. Needs 7."); // Check for null array
+                Console.WriteLine("Not enough args set. Needs 6."); // Check for null array
 
             }
             else
@@ -64,10 +62,9 @@ namespace ift585_tp1
                 savePath = lines[3];
                 protocolType = Convert.ToInt32(lines[4]);
                 errorType = Convert.ToInt32(lines[5]);
-                bitFlipper = Convert.ToInt32(lines[6]);
             }
 #endif
-            Network network = new Network(errorType, bitFlipper, timeout);
+            Network network = new Network(errorType, timeout);
             EndDevice receiver = new EndDevice(network, bufferLength, null, savePath, timeout, protocolType);
             EndDevice emitter = new EndDevice(network, bufferLength, file, null, timeout, protocolType);
 

@@ -21,11 +21,9 @@ namespace ift585_tp1
         public bool rdyToReceiveACK = false;
         protected int errorType;
         protected int timeout;
-        protected int bitFlipper;
-        public Network(int errorType, int bitFlipper, int timeout)
+        public Network(int errorType, int timeout)
         {
             this.errorType = errorType;
-            this.bitFlipper = bitFlipper;
             this.timeout = timeout;
         }
         public void Start()
@@ -37,30 +35,41 @@ namespace ift585_tp1
         {
             while (true)
             {
+                Thread.Sleep(1000);
                 // Emitter --> Receiver
                 if (!rdyToSend && !rdyToReceive)
                 {
-                    destination = source; // might need to make copy instead
-                    rdyToReceive = true;
-                    rdyToSend = true;
+                    // Generate error == 0
                     switch (errorType)
                     {
                         case 0:
-                            if (bitFlipper >= 0 && bitFlipper < destination.Length)
+                            Console.WriteLine("Insert error flipping bit(1), timeout(2).");
+                            string sErrorType = Console.ReadLine();
+                            if (sErrorType == "1") 
                             {
-                                destination[bitFlipper] = !destination[bitFlipper];
+                                Console.WriteLine("Which bit you want to flip(0 to "+ source.Length + " )?");
+                                string sbitFlipper = Console.ReadLine();
+                                if (Convert.ToInt32(sbitFlipper) >= 0 && Convert.ToInt32(sbitFlipper) < source.Length) 
+                                {
+                                    source[Convert.ToInt32(sbitFlipper)] = !source[Convert.ToInt32(sbitFlipper)];
+                                }
+                                else
+                                {
+                                    Console.WriteLine("The number set in the parameter is out of bound");
+                                }
                             }
-                            else
+                            else if (sErrorType == "2")
                             {
-                                Console.WriteLine("The number set in the parameter is out of bound");
+                                Thread.Sleep(timeout+1000);
                             }
-                            break;
-                        case 1:
-                            Thread.Sleep(timeout);
                             break;
                         default:
                             break;
                     }
+
+                    destination = source; // might need to make copy instead
+                    rdyToReceive = true;
+                    rdyToSend = true;
                 }
 
                 // Receiver --> Emitter (ACK & NAK)*/

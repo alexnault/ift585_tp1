@@ -76,20 +76,46 @@ namespace ift585_tp1.HammingCode
             Console.WriteLine("received message verification: {0}", receivedMessageVerification);
             Console.WriteLine("s value: {0}", s);*/
 
-            BitArray bitarray = toBitArray(receivedMessage);
-
-            byte[] bytes = new byte[bitarray.Length / 8];
-            bitarray.CopyTo(bytes, 0);
+            bool corrupted = false;
 
             // Frame has errors
             if (s.CountOnes() > 0)
             {
-                return Tuple.Create(false, new Frame(bytes));
+                try
+                {
+                    BinaryMatrix HWithIdentity = GenerateHWithIdentity(H);
+                    int faultyBitPosition = FindFaultyBit(HWithIdentity, s);
+
+                    Binary correctedFrame = new Binary(receivedFrame.ToArray());
+                    
+                    bool f = correctedFrame[faultyBitPosition];
+                    correctedFrame[faultyBitPosition] = !correctedFrame[faultyBitPosition];
+                    bool d = correctedFrame[faultyBitPosition];
+
+                    Console.WriteLine("Fault bit possition founded: {0}", faultyBitPosition);
+
+                    Binary correctedFrameGeneratedVerify = GenerateVerificationBits(H, new Binary(correctedFrame.Take(columnsAmount)));
+                    Binary correctedFrameVerify = new Binary(correctedFrame.Skip(columnsAmount));
+                    Binary correctionVerify = correctedFrameVerify ^ correctedFrameGeneratedVerify;
+                    if (correctionVerify.CountOnes() == 0)
+                    {
+                        receivedMessage = new Binary(correctedFrame.Take(columnsAmount).ToArray());
+                        corrupted = false;
+                    }
+                    else
+                        corrupted = true;
+                }
+                catch (WarningException)
+                {
+                    corrupted = true;
+                }
             }
-            else // Frame has no error
-            {
-                return Tuple.Create(true, new Frame(bytes));
-            }
+
+            BitArray bitarray = toBitArray(receivedMessage);
+            byte[] bytes = new byte[receivedMessage.Length / 8];
+            bitarray.CopyTo(bytes, 0);
+            Console.WriteLine(corrupted);
+            return Tuple.Create(!corrupted, new Frame(bytes));
         }
 
         private static Binary toBinary(BitArray bits)
