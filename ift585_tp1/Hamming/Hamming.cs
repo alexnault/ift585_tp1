@@ -97,6 +97,7 @@ namespace ift585_tp1.HammingCode
                     Binary correctionVerify = correctedFrameVerify ^ correctedFrameGeneratedVerify;
                     if (correctionVerify.CountOnes() == 0)
                     {
+                        Console.WriteLine(string.Format("Hamming switched the bit {0} from {1} to {2}", faultyBitPosition, Convert.ToInt32(!correctedFrame[faultyBitPosition]), Convert.ToInt32(correctedFrame[faultyBitPosition])));
                         receivedMessage = new Binary(correctedFrame.Take(columnsAmount).ToArray());
                         corrupted = false;
                     }

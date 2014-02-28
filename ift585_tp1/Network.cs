@@ -42,12 +42,16 @@ namespace ift585_tp1
                     // Generate error == 0 else debug purpose
                     switch (errorType)
                     {
-                        case 0:
-                            Console.WriteLine(">Insert error: No error(0), Flipping bit(1), Destroy frame(2).");
+                        case 1:
+                            Console.ForegroundColor = ConsoleColor.White;
+                            Console.WriteLine(">Insert error: No error(0), Flip bit(1), Destroy frame(2).", ConsoleColor.Red);
+                            Console.ForegroundColor = ConsoleColor.DarkGray;
                             string sErrorType = Console.ReadLine();
                             if (sErrorType == "1") 
                             {
-                                Console.WriteLine(">Bit to flip: (0 to "+ source.Length + ")?");
+                                Console.ForegroundColor = ConsoleColor.White;
+                                Console.WriteLine(">Bit to flip: (0 to "+ source.Length + ")");
+                                Console.ForegroundColor = ConsoleColor.DarkGray;
                                 string sbitFlipper = Console.ReadLine();
                                 if (Convert.ToInt32(sbitFlipper) >= 0 && Convert.ToInt32(sbitFlipper) < source.Length) 
                                 {
@@ -88,20 +92,6 @@ namespace ift585_tp1
                     destinationACK = sourceACK;
                     rdyToReceiveACK = true;
                     rdyToSendACK = true;
-                    //switch (errorType)
-                    //{
-                    //    case 0:
-                    //        Random random = new Random();
-                    //        int randomNumber = random.Next(0, destination.Length);
-                    //        destinationACK[randomNumber] = !destinationACK[randomNumber];
-                    //        break;
-                    //    case 1:
-                    //        break;
-                    //    case 2:
-                    //        break;
-                    //    default:
-                    //        break;
-                    //}
                 }
             }
         }

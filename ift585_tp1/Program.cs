@@ -19,6 +19,8 @@ namespace ift585_tp1
             string file = "";
             string savePath = "";
 
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+
 #if (DEBUG)
 
             if (args.Length < 6)
@@ -64,6 +66,7 @@ namespace ift585_tp1
                 errorType = Convert.ToInt32(lines[5]);
             }
 #endif
+
             Network network = new Network(errorType, timeout);
             EndDevice receiver = new EndDevice(network, bufferLength, null, savePath, timeout, protocolType);
             EndDevice emitter = new EndDevice(network, bufferLength, file, null, timeout, protocolType);

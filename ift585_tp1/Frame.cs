@@ -26,7 +26,7 @@ namespace ift585_tp1
 
         private byte[] _bytes;
 
-        public const int NB_MAX_DATA_BYTES = 5;
+        public const int NB_MAX_DATA_BYTES = 7;
 
         /// <summary>
         /// Create a frame with its header's infos
@@ -123,7 +123,7 @@ namespace ift585_tp1
 
         public override string ToString()
         {
-            string s = string.Format("Frame : id={0} ttl={1} type={2} dataLength={3}", id, mustResend, type, dataLength);
+            string s = string.Format("Frame : id={0} type={1} dataLength={2}", id, type, dataLength);
             string dataString = string.Empty;
             for (int i = 0; i < dataLength; i++)
             {
@@ -134,5 +134,21 @@ namespace ift585_tp1
             return s;
         }
 
+        public string DataToString()
+        {
+            try
+            {
+                string s = string.Empty;
+                for (int i = 0; i < dataLength; i++)
+                {
+                    s += Convert.ToChar(data[i]);
+                }
+                return s;
+            }
+            catch (Exception e)
+            {
+                return string.Empty;
+            }
+        }
     }
 }

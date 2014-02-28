@@ -40,16 +40,21 @@ namespace ift585_tp1
         {
             this.network = network;
             this.inputPath = inputPath;
-            if (this.inputPath != null)
+            if (inputPath != null)
+            {
                 infs = File.OpenRead(inputPath);
+            }
             this.outputPath = outputPath;
-            if (this.outputPath != null)
+            if (outputPath != null)
+            {
+                File.WriteAllText(outputPath, string.Empty);
                 outfs = File.OpenWrite(outputPath);
+            }
 
             this.timeout = timeout;
             this.protocolType = protocolType;
-            outBuffer = new FrameBuffer(bufferLength * Frame.NB_MAX_DATA_BYTES);
-            inBuffer = new FrameBuffer(bufferLength * Frame.NB_MAX_DATA_BYTES);
+            outBuffer = new FrameBuffer(bufferLength);
+            inBuffer = new FrameBuffer(bufferLength);
         }
 
         public void Start()
@@ -85,6 +90,7 @@ namespace ift585_tp1
                     // Read and insert in outbuffer
                     if (!outBuffer.IsFull())
                     {
+                        Console.WriteLine("fdsfsdfdsf");
                         byte[] bytes = ReadNext();
                         if (bytes != null)
                         {
@@ -102,7 +108,7 @@ namespace ift585_tp1
                         }
                         if (frameToSend != null)
                         {
-                            Console.WriteLine("Sending " + frameToSend.ToString());
+                            Console.WriteLine("Sending   --> " + frameToSend.ToString());
                             network.Send(Hamming.AddHamming(frameToSend));
                             outBuffer.StartTimer(frameToSend.id, timeout);
                         }
@@ -122,19 +128,19 @@ namespace ift585_tp1
 
                             if (ackOrNak.type == Frame.Type.ACK)
                             {
-                                Console.WriteLine("Receiving ACK " + ackOrNak.ToString() + " for frame " + ackOrNakForId + ".");
+                                Console.WriteLine("Receiving <-- " + ackOrNak.ToString() + " for frame " + ackOrNakForId + ".");
                                 outBuffer.RemoveLessOrEqualId(ackOrNakForId);
                                 outBuffer.RemoveFrameTimerLessOrEqualId(ackOrNakForId);
                             }
                             else
                             {
-                                Console.WriteLine("Receiving NAK " + ackOrNak.ToString() + " for frame " + ackOrNakForId + ".");
+                                Console.WriteLine("Receiving <-- " + ackOrNak.ToString() + " for frame " + ackOrNakForId + ".");
                                 outBuffer.GetFrameFromId(ackOrNakForId).mustResend = 1;
                             }
                         }
                         else
                         {
-                            Console.WriteLine("Receiving ACK or NAK " + ackOrNak.ToString() + ", rejecting due to error.");
+                            Console.WriteLine("Receiving <-- " + ackOrNak.ToString() + ", rejecting due to error.");
                         }
                     }
                 }
@@ -155,28 +161,30 @@ namespace ift585_tp1
                         {
                             if (frame.id > awaitedFrameId)
                             {
-                                Console.WriteLine("Receiving " + frame.ToString() + ", global reject.");
+                                Console.WriteLine("Receiving --> " + frame.ToString() + ", global reject.");
                                 outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(awaitedFrameId)));
                             }
                             else if (frame.id == awaitedFrameId)
                             {
                                 if (!hammingIsFine || !frame.checksumIsFine())
                                 {
-                                    Console.WriteLine("Receiving " + frame.ToString() + ", reject due to error.");
+                                    Console.WriteLine("Receiving --> " + frame.ToString() + ", reject due to error.");
                                     outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(frame.id)));
                                 }
                                 else
                                 {
-                                    Console.WriteLine("Receiving " + frame.ToString() + ", OK.");
+                                    Console.WriteLine("Receiving --> " + frame.ToString() + ", OK.");
                                     awaitedFrameId++;
                                     outBuffer.Push(new Frame(frameId++, Frame.Type.ACK, BitConverter.GetBytes(frame.id)));
-                                    Console.WriteLine("Writing frame  " + frame.id + " to file.");
+                                    Console.ForegroundColor = ConsoleColor.Green;
+                                    Console.WriteLine("Writing frame " + frame.id + " \"" + frame.DataToString() + "\" to file.");
+                                    Console.ForegroundColor = ConsoleColor.DarkGray;
                                     WriteNext(frame.data);
                                 }
                             }
                             else
                             {
-                                Console.WriteLine("Receiving " + frame.ToString() + ", ignore since we already have it.");
+                                Console.WriteLine("Receiving --> " + frame.ToString() + ", ignore since we already have it.");
                             }
                         }
                         #endregion
@@ -188,12 +196,12 @@ namespace ift585_tp1
                             {
                                 if (inBuffer.GetFreeCount() > 1) // We have more than one free entry
                                 {
-                                    Console.WriteLine("Receiving " + frame.ToString() + ", stored, waiting for " + awaitedFrameId + ".");
+                                    Console.WriteLine("Receiving --> " + frame.ToString() + ", stored, waiting for " + awaitedFrameId + ".");
                                     inBuffer.Push(frame);
                                 }
                                 else
                                 {
-                                    Console.WriteLine("Receiving " + frame.ToString() + ", rejected, waiting for " + awaitedFrameId + ".");
+                                    Console.WriteLine("Receiving --> " + frame.ToString() + ", rejected, waiting for " + awaitedFrameId + ".");
                                 }
                                 outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(awaitedFrameId)));
                             }
@@ -201,12 +209,12 @@ namespace ift585_tp1
                             {
                                 if (!hammingIsFine || !frame.checksumIsFine())
                                 {
-                                    Console.WriteLine("Receiving " + frame.ToString() + ", reject due to error.");
+                                    Console.WriteLine("Receiving --> " + frame.ToString() + ", reject due to error.");
                                     outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(frame.id)));
                                 }
                                 else
                                 {
-                                    Console.WriteLine("Receiving " + frame.ToString() + ", OK.");
+                                    Console.WriteLine("Receiving --> " + frame.ToString() + ", OK.");
                                     inBuffer.Push(frame);
 
                                     Frame next;
@@ -215,7 +223,10 @@ namespace ift585_tp1
                                         next = inBuffer.GetFrameFromId(awaitedFrameId);
                                         if (next != null)
                                         {
+                                            Console.ForegroundColor = ConsoleColor.Green;
                                             Console.WriteLine("Writing frame " + next.id + " to file.");
+                                            Console.WriteLine(frame.DataToString());
+                                            Console.ForegroundColor = ConsoleColor.DarkGray;
                                             WriteNext(next.data);
                                             inBuffer.RemoveFromId(next.id);
                                             awaitedFrameId++;
@@ -229,7 +240,7 @@ namespace ift585_tp1
                             }
                             else
                             {
-                                Console.WriteLine("Receiving " + frame.ToString() + ", ignore since we already have it.");
+                                Console.WriteLine("Receiving --> " + frame.ToString() + ", ignore since we already have it.");
                             }
                         }
                         #endregion
@@ -240,9 +251,9 @@ namespace ift585_tp1
                     {
                         Frame ackOrNak = outBuffer.Pop(); // Receiver's buffer
                         if (ackOrNak.type == Frame.Type.ACK)
-                            Console.WriteLine("Sending ACK : " + ackOrNak.ToString());
+                            Console.WriteLine("Sending   <-- " + ackOrNak.ToString());
                         else
-                            Console.WriteLine("Sending NAC : " + ackOrNak.ToString());
+                            Console.WriteLine("Sending   <-- " + ackOrNak.ToString());
                         network.SendACK(Hamming.AddHamming(ackOrNak));
                     }
                 }
@@ -260,8 +271,9 @@ namespace ift585_tp1
                 }
                 else
                 {
-                    bytes = new byte[Frame.NB_MAX_DATA_BYTES];
-                    infs.Read(bytes, 0, Frame.NB_MAX_DATA_BYTES);
+                    int dataLenght = Convert.ToInt32(Math.Min(Frame.NB_MAX_DATA_BYTES, (infs.Length - infs.Position)));
+                    bytes = new byte[dataLenght];
+                    infs.Read(bytes, 0, dataLenght);
                 }
             }
             return bytes;
