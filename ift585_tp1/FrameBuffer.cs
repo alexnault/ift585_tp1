@@ -39,76 +39,69 @@ namespace ift585_tp1
 
         public Frame FrameToSend()
         {
-            Frame toSend = null;
-            if ((tail < head && current >= tail && current < head) // [...T...C...H...] or
-                || (tail > head && !(current >= head && current < tail))) // [...H...T...C...] or [...C...H...T...]
-            {
-                toSend = buffer[current];
-                current = (current + 1) % length;
-            }
+            Frame toSend = buffer[current];
+            current = (current + 1) % length;
             return toSend;
         }
 
         public Frame GetFrameFromId(int id)
         {
-            return buffer.FirstOrDefault(x => x!=null && x.id == id);
+            return buffer.FirstOrDefault(x => x != null && x.id == id);
         }
 
         public void RemoveFromId(int id)
         {
-            for (int i = 0; i < count; i++)
+            if (!IsEmpty())
             {
-                if (buffer[i].id == id)
+                int i = tail;
+                do
                 {
-                    lock (_mutex)
+                    if (buffer[i].id == id)
                     {
-                        this.RemoveAt(i);
+                        lock (_mutex)
+                        {
+                            this.RemoveAt(i);
+                        }
+                        break;
                     }
-                    break;
-                }
+                    i = (i + 1) % length;
+                } while (i != head);
             }
         }
 
         public void RemoveLessOrEqualId(int id)
         {
-            int i = 0;
-            while (i < count)
+            if (!IsEmpty())
             {
-                if (buffer[i].id <= id)
+                int i = tail;
+                do
                 {
-                    lock (_mutex)
+                    if (buffer[i].id <= id)
                     {
-                        this.RemoveAt(i);
+                        lock (_mutex)
+                        {
+                            this.RemoveAt(i);
+                        }
                     }
-                }
-                else
-                    i++;
+                    i = (i + 1) % length;
+                } while (i != head);
             }
         }
 
         public void RemoveAt(int index)
         {
-            // validate the index
-            if (index < 0 || index >= count)
+            // Validate the index
+            if (index < 0 || index >= length)
                 throw new IndexOutOfRangeException();
-            // move all items above the specified position one step
-            // closer to zeri
-            for (int i = index; i < count - 1; i++)
+
+            // Shift right items between the tail and the index
+            int i = index;
+            while (i != tail)
             {
-                // get the next relative target position of the item
-                int to = (head - count + i) % length;
-                // get the next relative source position of the item
-                int from = (head - count + i + 1) % length;
-                // move the item
-                buffer[to] = buffer[from];
+                buffer[i] = buffer[(i - 1 + length) % length];
+                i = (i - 1 + length) % length;
             }
-            // get the relative position of the last item, which becomes empty
-            // after deletion and set the item as empty
-            int last = (head - 1) % length;
-            buffer[last] = default(Frame);
-            // adjust storage information
-            head--;
-            count--;
+            base.Pop(); // Remove at tail
         }
 
         public int GetFreeCount()
@@ -162,26 +155,38 @@ namespace ift585_tp1
 
         public Frame GetMustResendFrame()
         {
-            for (int i = 0; i < count; i++)
+            if (!IsEmpty())
             {
-                if (buffer[i].mustResend == 1)
+                int i = tail;
+                do
                 {
-                    buffer[i].mustResend = 0;
-                    return buffer[i];
-                }
+                    if (buffer[i].mustResend == 1)
+                    {
+                        buffer[i].mustResend = 0;
+                        return buffer[i];
+                    }
+                    i = (i + 1) % length;
+                } while (i != head);
             }
             return null;
         }
 
         public void SetMustResendFrame(int id)
         {
-            for (int i = 0; i < count; i++)
+            if (!IsEmpty())
             {
-                if (buffer[i].id == id)
+                int i = tail;
+                do
                 {
-                    buffer[i].mustResend = 1;
-                }
+                    if (buffer[i].id == id)
+                    {
+                        buffer[i].mustResend = 1;
+                        break;
+                    }
+                    i = (i + 1) % length;
+                } while (i != head);
             }
         }
+
     }
 }

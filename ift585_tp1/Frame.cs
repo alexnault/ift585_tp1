@@ -145,7 +145,7 @@ namespace ift585_tp1
                 }
                 return s;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return string.Empty;
             }

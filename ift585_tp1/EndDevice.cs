@@ -90,7 +90,6 @@ namespace ift585_tp1
                     // Read and insert in outbuffer
                     if (!outBuffer.IsFull())
                     {
-                        Console.WriteLine("fdsfsdfdsf");
                         byte[] bytes = ReadNext();
                         if (bytes != null)
                         {
@@ -159,28 +158,28 @@ namespace ift585_tp1
                         #region "Algo de rejet global"
                         if (protocolType == (int)protocol.global)
                         {
-                            if (frame.id > awaitedFrameId)
+                            if (!hammingIsFine || !frame.checksumIsFine())
+                            {
+                                Console.WriteLine("Receiving --> " + frame.ToString() + ", reject due to error.");
+                                // We can't be sure of the ID due to error, so we send NAK for the awaited frame instead
+                                outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(awaitedFrameId)));
+                            }
+                            else if (frame.id > awaitedFrameId)
                             {
                                 Console.WriteLine("Receiving --> " + frame.ToString() + ", global reject.");
                                 outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(awaitedFrameId)));
                             }
                             else if (frame.id == awaitedFrameId)
                             {
-                                if (!hammingIsFine || !frame.checksumIsFine())
-                                {
-                                    Console.WriteLine("Receiving --> " + frame.ToString() + ", reject due to error.");
-                                    outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(frame.id)));
-                                }
-                                else
-                                {
-                                    Console.WriteLine("Receiving --> " + frame.ToString() + ", OK.");
-                                    awaitedFrameId++;
-                                    outBuffer.Push(new Frame(frameId++, Frame.Type.ACK, BitConverter.GetBytes(frame.id)));
-                                    Console.ForegroundColor = ConsoleColor.Green;
-                                    Console.WriteLine("Writing frame " + frame.id + " \"" + frame.DataToString() + "\" to file.");
-                                    Console.ForegroundColor = ConsoleColor.DarkGray;
-                                    WriteNext(frame.data);
-                                }
+                                Console.WriteLine("Receiving --> " + frame.ToString() + ", OK.");
+                                awaitedFrameId++;
+                                outBuffer.Push(new Frame(frameId++, Frame.Type.ACK, BitConverter.GetBytes(frame.id)));
+                                Console.ForegroundColor = ConsoleColor.Green;
+                                Console.WriteLine("Writing frame " + frame.id + " to file (content in yellow) :");
+                                Console.ForegroundColor = ConsoleColor.Yellow;
+                                Console.WriteLine(frame.DataToString());
+                                Console.ForegroundColor = ConsoleColor.DarkGray;
+                                WriteNext(frame.data);
                             }
                             else
                             {
@@ -192,7 +191,17 @@ namespace ift585_tp1
                         #region "Algo selectif"
                         else if (protocolType == (int)protocol.selectif)
                         {
-                            if (frame.id > awaitedFrameId)
+                            if (!hammingIsFine || !frame.checksumIsFine())
+                            {
+                                Console.WriteLine("Receiving --> " + frame.ToString() + ", reject due to error.");
+                                // We can't be sure of the ID due to error, so we send NAK for the awaited frame instead
+                                outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(awaitedFrameId)));
+                            }
+                            else if (frame.id < awaitedFrameId || inBuffer.GetFrameFromId(frameId) != null)
+                            {
+                                Console.WriteLine("Receiving --> " + frame.ToString() + ", ignore since we already have it.");
+                            }
+                            else if (frame.id > awaitedFrameId)
                             {
                                 if (inBuffer.GetFreeCount() > 1) // We have more than one free entry
                                 {
@@ -205,42 +214,31 @@ namespace ift585_tp1
                                 }
                                 outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(awaitedFrameId)));
                             }
-                            else if (frame.id == awaitedFrameId)
+                            else // frame.id == awaitedFrameId
                             {
-                                if (!hammingIsFine || !frame.checksumIsFine())
-                                {
-                                    Console.WriteLine("Receiving --> " + frame.ToString() + ", reject due to error.");
-                                    outBuffer.Push(new Frame(frameId++, Frame.Type.NAK, BitConverter.GetBytes(frame.id)));
-                                }
-                                else
-                                {
-                                    Console.WriteLine("Receiving --> " + frame.ToString() + ", OK.");
-                                    inBuffer.Push(frame);
+                                Console.WriteLine("Receiving --> " + frame.ToString() + ", OK.");
+                                inBuffer.Push(frame);
 
-                                    Frame next;
-                                    do
+                                Frame next;
+                                do
+                                {
+                                    next = inBuffer.GetFrameFromId(awaitedFrameId);
+                                    if (next != null)
                                     {
-                                        next = inBuffer.GetFrameFromId(awaitedFrameId);
-                                        if (next != null)
-                                        {
-                                            Console.ForegroundColor = ConsoleColor.Green;
-                                            Console.WriteLine("Writing frame " + next.id + " to file.");
-                                            Console.WriteLine(frame.DataToString());
-                                            Console.ForegroundColor = ConsoleColor.DarkGray;
-                                            WriteNext(next.data);
-                                            inBuffer.RemoveFromId(next.id);
-                                            awaitedFrameId++;
-                                        }
-                                        else
-                                        {
-                                            outBuffer.Push(new Frame(frameId++, Frame.Type.ACK, BitConverter.GetBytes(awaitedFrameId - 1)));
-                                        }
-                                    } while (next != null);
-                                }
-                            }
-                            else
-                            {
-                                Console.WriteLine("Receiving --> " + frame.ToString() + ", ignore since we already have it.");
+                                        Console.ForegroundColor = ConsoleColor.Green;
+                                        Console.WriteLine("Writing frame " + next.id + " to file (content in yellow) :");
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine(frame.DataToString());
+                                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                                        WriteNext(next.data);
+                                        inBuffer.RemoveFromId(next.id);
+                                        awaitedFrameId++;
+                                    }
+                                    else
+                                    {
+                                        outBuffer.Push(new Frame(frameId++, Frame.Type.ACK, BitConverter.GetBytes(awaitedFrameId - 1)));
+                                    }
+                                } while (next != null);
                             }
                         }
                         #endregion
